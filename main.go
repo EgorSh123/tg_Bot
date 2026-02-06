@@ -2,14 +2,20 @@ package main
 
 import (
 	"log"
+	"main/game"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func main() {
+	game, err := game.NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	bot, err := tgbotapi.NewBotAPI("8314606814:AAH7IrFp5jDhaqKMOy-n29y8VUSkP3CvtvU")
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	bot.Debug = true
@@ -25,7 +31,9 @@ func main() {
 		if update.Message != nil { // If we got a message
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+			word := game.Word(update.Message.Text)
+
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, word)
 			msg.ReplyToMessageID = update.Message.MessageID
 
 			bot.Send(msg)
