@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"main/game"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -39,4 +40,13 @@ func main() {
 			bot.Send(msg)
 		}
 	}
+
+}
+func getTargetLetter(word string) string {
+	runes := []rune(strings.ToLower(word))
+	last := runes[len(runes)-1]
+	if last == 'ь' || last == 'ъ' || last == 'ы' {
+		last = runes[len(runes)-2]
+	}
+	return string(last)
 }
