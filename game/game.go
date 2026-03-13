@@ -5,7 +5,45 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
+
+type Logic interface {
+	Word(word string) string
+	RestartGame()
+}
+
+type UserSession struct {
+	Game Logic
+}
+
+type SessionManager struct {
+	mu       sync.RWMutex
+	sessions map[int64]*UserSession
+}
+
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		sessions: make(map[int64]*UserSession),
+	}
+}
+
+func (sm *SessionManager) GetSession(userID int64) *UserSession {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.sessions[userID]
+}
+
+func (sm *SessionManager) StartNewGame(userID int64) (*Game, error) {
+	g, err := NewGame()
+	if err != nil {
+		return nil, err
+	}
+	sm.mu.Lock()
+	sm.sessions[userID] = &UserSession{Game: g}
+	sm.mu.Unlock()
+	return g, nil
+}
 
 type Game struct {
 	allWords  map[rune][]string
@@ -15,7 +53,7 @@ type Game struct {
 }
 
 func NewGame() (*Game, error) {
-	f, err := os.Open("fruits.txt")
+	f, err := os.Open("./fruits.txt")
 	if err != nil {
 		return nil, err
 	}
