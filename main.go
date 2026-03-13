@@ -1,16 +1,15 @@
 package main
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"main/game"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func main() {
-	game, err := game.NewGame()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Инициализация сессий
+	sessionManager := game.NewSessionManager()
 
 	bot, err := tgbotapi.NewBotAPI("8314606814:AAH7IrFp5jDhaqKMOy-n29y8VUSkP3CvtvU")
 	if err != nil {
@@ -26,6 +25,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 
+	// Бесконечный цикл для обработки обновлений
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.Text == "/start" {
@@ -45,7 +45,15 @@ func main() {
 
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-			word := game.Word(update.Message.Text)
+			// Получаем или создаем сессию пользователя
+			session := sessionManager.GetSession(update.Message.Chat.ID)
+			if session == nil {
+				// Если сессии нет, создаем новую
+				sessionManager.StartNewGame(update.Message.Chat.ID)
+				session = sessionManager.GetSession(update.Message.Chat.ID)
+			}
+
+			word := session.Game.Word(update.Message.Text)
 			if word == "ты проиграл!" {
 				// Создаем клавиатуру с кнопкой "Перезапустить игру"
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -68,13 +76,17 @@ func main() {
 		} else if update.CallbackQuery != nil {
 			// Обрабатываем нажатие кнопки
 			if update.CallbackQuery.Data == "start_game" {
-				// Отправляем сообщение о начале игры
+				// Создаем новую игру для пользователя
+				sessionManager.StartNewGame(update.CallbackQuery.Message.Chat.ID)
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
 				bot.Send(msg)
 			}
 			if update.CallbackQuery.Data == "restart_game" {
-				// Отправляем сообщение о начале игры
-				game.RestartGame()
+				// Перезапускаем игру
+				session := sessionManager.GetSession(update.CallbackQuery.Message.Chat.ID)
+				if session != nil {
+					session.Game.RestartGame()
+				}
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
 				bot.Send(msg)
 			}
