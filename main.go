@@ -29,14 +29,19 @@ func main() {
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.Text == "/start" {
-				// Создаем клавиатуру с кнопкой "Начать игру"
+				// Создаем клавиатуру с кнопками выбора режима
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Начать игру", "start_game"),
+						tgbotapi.NewInlineKeyboardButtonData("Города", "mode_cities"),
+						tgbotapi.NewInlineKeyboardButtonData("Фрукты", "mode_fruits"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("Страны", "mode_countries"),
+						tgbotapi.NewInlineKeyboardButtonData("Случайный", "mode_random"),
 					),
 				)
 
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Привет! Нажми кнопку ниже, чтобы начать игру:")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выбери режим игры:")
 				msg.ReplyMarkup = keyboard
 
 				bot.Send(msg)
@@ -75,13 +80,33 @@ func main() {
 			bot.Send(msg)
 		} else if update.CallbackQuery != nil {
 			// Обрабатываем нажатие кнопки
-			if update.CallbackQuery.Data == "start_game" {
+			switch update.CallbackQuery.Data {
+			case "mode_cities":
+				// Создаем новую игру с режимом "Города"
+				sessionManager.StartNewGameWithMode(update.CallbackQuery.Message.Chat.ID, "cities")
+				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
+				bot.Send(msg)
+			case "mode_fruits":
+				// Создаем новую игру с режимом "Фрукты"
+				sessionManager.StartNewGameWithMode(update.CallbackQuery.Message.Chat.ID, "fruits")
+				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
+				bot.Send(msg)
+			case "mode_countries":
+				// Создаем новую игру с режимом "Страны"
+				sessionManager.StartNewGameWithMode(update.CallbackQuery.Message.Chat.ID, "countries")
+				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
+				bot.Send(msg)
+			case "mode_random":
+				// Создаем новую игру с режимом "Случайный"
+				sessionManager.StartNewGameWithMode(update.CallbackQuery.Message.Chat.ID, "random")
+				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
+				bot.Send(msg)
+			case "start_game":
 				// Создаем новую игру для пользователя
 				sessionManager.StartNewGame(update.CallbackQuery.Message.Chat.ID)
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Игра началась! Введи первое слово:")
 				bot.Send(msg)
-			}
-			if update.CallbackQuery.Data == "restart_game" {
+			case "restart_game":
 				// Перезапускаем игру
 				session := sessionManager.GetSession(update.CallbackQuery.Message.Chat.ID)
 				if session != nil {

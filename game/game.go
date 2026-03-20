@@ -45,15 +45,44 @@ func (sm *SessionManager) StartNewGame(userID int64) (*Game, error) {
 	return g, nil
 }
 
+// Добавляем метод для создания игры с определённым режимом
+func (sm *SessionManager) StartNewGameWithMode(userID int64, mode string) (*Game, error) {
+	g, err := NewGameWithMode(mode)
+	if err != nil {
+		return nil, err
+	}
+	sm.mu.Lock()
+	sm.sessions[userID] = &UserSession{Game: g}
+	sm.mu.Unlock()
+	return g, nil
+}
+
 type Game struct {
 	allWords  map[rune][]string
 	usedWords map[string]struct{}
 	lastWord  string
 	attempts  int
+	mode      string // режим игры
 }
 
 func NewGame() (*Game, error) {
-	f, err := os.Open("./fruits.txt")
+	return NewGameWithMode("fruits") // по умолчанию режим "фрукты"
+}
+
+func NewGameWithMode(mode string) (*Game, error) {
+	var filename string
+	switch mode {
+	case "cities":
+		filename = "./cities.txt"
+	case "countries":
+		filename = "./countries.txt"
+	case "fruits":
+		filename = "./fruits.txt"
+	default:
+		filename = "./fruits.txt" // по умолчанию
+	}
+
+	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +95,9 @@ func NewGame() (*Game, error) {
 			break
 		}
 		word = strings.Trim(word, "\n")
+		if word == "" {
+			continue
+		}
 		wordRune := []rune(word)
 		allWords[wordRune[0]] = append(allWords[wordRune[0]], word)
 	}
@@ -73,6 +105,7 @@ func NewGame() (*Game, error) {
 		allWords:  allWords,
 		usedWords: make(map[string]struct{}),
 		attempts:  5,
+		mode:      mode,
 	}, nil
 }
 
